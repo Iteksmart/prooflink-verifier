@@ -1,0 +1,48 @@
+{
+  "name": "@iteksmart/prooflink-verifier",
+  "version": "1.0.0",
+  "description": "Open-source cryptographic verification for iTechSmart UAIO ProofLink receipts — don't trust our AI, trust the math.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "prooflink",
+    "uaio",
+    "itechsmart",
+    "cryptographic-verification",
+    "audit",
+    "sha256",
+    "hash-chain",
+    "tamper-evident"
+  ],
+  "author": "iTechSmart Inc.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Iteksmart/prooflink-verifier.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Iteksmart/prooflink-verifier/issues"
+  },
+  "homepage": "https://github.com/Iteksmart/prooflink-verifier#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}
