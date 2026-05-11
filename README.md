@@ -45,7 +45,7 @@ If you alter Receipt 1's `action` field:
 ## Installation
 
 ```bash
-npm install @iteksmart/prooflink-verifier
+npm install @itechsmart/prooflink-verifier
 ```
 
 Or clone and use directly:
@@ -63,7 +63,7 @@ npm install
 ### Verify a single receipt
 
 ```typescript
-import { verifyReceipt } from '@iteksmart/prooflink-verifier'
+import { verifyReceipt } from '@itechsmart/prooflink-verifier'
 
 const result = verifyReceipt(receipt, previousReceipt)
 
@@ -76,7 +76,7 @@ console.log(result.errors)          // list of failures
 ### Verify an entire chain
 
 ```typescript
-import { verifyChain } from '@iteksmart/prooflink-verifier'
+import { verifyChain } from '@itechsmart/prooflink-verifier'
 
 const receipts = await fetchReceiptsFromLedger()
 const result = verifyChain(receipts)
@@ -90,7 +90,7 @@ console.log(result.summary)          // human-readable summary
 ### Compute a hash yourself
 
 ```typescript
-import { computeReceiptHash } from '@iteksmart/prooflink-verifier'
+import { computeReceiptHash } from '@itechsmart/prooflink-verifier'
 
 const { sha256, ...receiptWithoutHash } = receipt
 const computed = computeReceiptHash(receiptWithoutHash)

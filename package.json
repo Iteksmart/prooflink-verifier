@@ -1,5 +1,5 @@
 {
-  "name": "@iteksmart/prooflink-verifier",
+  "name": "@itechsmart/prooflink-verifier",
   "version": "1.0.0",
   "description": "Open-source cryptographic verification for iTechSmart UAIO ProofLink receipts — don't trust our AI, trust the math.",
   "main": "dist/index.js",
