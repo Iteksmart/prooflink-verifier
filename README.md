@@ -1,10 +1,21 @@
 # ProofLink™ Verifier
 
+[![Verify Live](https://img.shields.io/badge/verify-live-00A870)](https://verify.itechsmart.dev)
+
 **Open-source cryptographic verification logic for iTechSmart UAIO receipts.**
 
 > Don't trust our AI. Trust the math.
 
 ---
+
+
+## Why Cryptographic Proof?
+
+Modern enterprise IT generates millions of autonomous actions per day — auto-scaling, patching, remediating, classifying. Most happen with no human in the loop. The audit story today is a mess of mutable logs, ad-hoc PDFs, and dashboards no one trusts.
+
+Regulators are catching up. **EU AI Act Article 12** (enforcement 2026-08-02) requires high-risk AI systems to maintain tamper-evident logs of every decision. NIST AI RMF and SOC 2 are tightening too.
+
+A cryptographic receipt chain is the cheapest way to meet those requirements *and* the only way to prove autonomous behavior to a skeptical auditor. ProofLink generates one receipt per autonomous action, SHA-256 hashed, linked to the previous receipt, and publicly verifiable at [verify.itechsmart.dev](https://verify.itechsmart.dev).
 
 ## What is this?
 
@@ -42,6 +53,32 @@ If you alter Receipt 1's `action` field:
 
 ---
 
+
+## EU AI Act Article 12 Alignment
+
+Article 12 of the EU AI Act (effective 2026-08-02) requires providers of high-risk AI systems to maintain automatic, tamper-evident logs of every decision. Mutable log files, post-hoc PDFs, and ephemeral dashboards do not satisfy this requirement.
+
+ProofLink receipts satisfy Article 12 by design:
+
+| Article 12 requirement | ProofLink mechanism |
+|---|---|
+| Automatic logging at runtime | Receipt generated synchronously on every autonomous action |
+| Tamper-evident records | SHA-256 hash chain — altering any receipt invalidates every subsequent one |
+| Identification of the system | `executor` field carries the model/agent identifier |
+| Chronological ordering | `chain_position` integer + ISO 8601 `timestamp`, both verified during chain checks |
+| Retention | Hash chain stored append-only; OpenTimestamps anchor optionally pins to Bitcoin |
+
+## NIST 800-53 Control Mapping
+
+Each receipt asserts compliance with the following NIST 800-53 controls. The mapping is recorded inside the receipts `nist_controls` field so it travels with the proof:
+
+| Control | Title | How ProofLink supports |
+|---|---|---|
+| **AU-2** | Event Logging | Every autonomous action generates an event record |
+| **AU-10** | Non-Repudiation | Hash chain + executor identity prevent denial |
+| **SI-7** | Software, Firmware, and Information Integrity | Tamper-evident chain on the action trail |
+| **SA-11** | Developer Testing and Evaluation | `test_result` field captured per receipt |
+
 ## Installation
 
 ```bash
@@ -72,6 +109,39 @@ console.log(result.tamper_detected) // true if hash or chain broken
 console.log(result.checks)          // detailed check results
 console.log(result.errors)          // list of failures
 ```
+
+
+## How to Verify a Receipt (Step-by-Step)
+
+The point of a public verifier is that anyone — auditor, journalist, competitor, customer — can independently confirm a ProofLink chain has not been edited. Here is the path from "I have a receipt ID" to "I trust this AI action happened exactly as claimed":
+
+**1. Fetch the receipt**
+
+```bash
+curl https://verify.itechsmart.dev/api/verify/<receipt_id>
+```
+
+**2. Fetch the previous receipt** referenced by `previous_hash`:
+
+```bash
+curl https://verify.itechsmart.dev/api/receipts \
+  | jq '.receipts[] | select(.sha256 == "<previous_hash>")'
+```
+
+**3. Re-compute the SHA-256** over the canonical JSON of every field except `sha256` itself, and check that it matches:
+
+```typescript
+import { verifyReceipt } from '@itechsmart/prooflink-verifier'
+const result = verifyReceipt(receipt, previousReceipt)
+console.log(result.valid)            // must be true
+console.log(result.tamper_detected)  // must be false
+```
+
+**4. Walk the chain backward** to the genesis receipt with `verifyChain()`. A single broken link invalidates the chain from that point forward.
+
+**5. Spot-check by random sampling.** Pick 5–10 random receipts; if every one verifies, the math says the entire chain is intact with overwhelming probability.
+
+If you find a chain break, that is a real failure — please file a public issue on this repo.
 
 ### Verify an entire chain
 
