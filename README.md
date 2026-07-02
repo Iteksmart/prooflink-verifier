@@ -8,6 +8,39 @@
 
 ---
 
+## Conformance to ProofLink Receipt Standard v1.0
+
+This verifier now ships a **Standard v1.0-conformant** verifier for the **live v3
+receipt format** (`ProofLink-Receipt-Standard-v1.md`). Import the `*V3` API:
+
+```ts
+import { verifyV3, verifyReceiptV3, verifyChainV3 } from "prooflink-verifier";
+
+const res = await fetch("https://verify.itechsmart.dev/api/verify/<id>");
+const { receipt } = await res.json();
+verifyV3(receipt);                 // boolean — all 4 Standard checks
+verifyReceiptV3(receipt, prevHash) // { valid, checks[], errors[] }
+```
+
+It performs the four normative checks: (1) `SHA256(canonical_bytes) == hash_sha256`,
+(2) canonical re-derivation of `canonical_bytes`, (3) Ed25519 signature over the raw
+`canonical_bytes` under the embedded (published) public key, (4) `prev_hash` chain link.
+
+### ⚠ Schema drift — read this
+
+The **original** exports (`computeReceiptHash`, `verifyReceipt`, `verifyChain`,
+`ProofLinkVerifier`) target a **pre-v3 / legacy receipt shape**
+(`receipt_id`, `sha256`, `previous_hash`, `before_state`, `after_state`,
+`nist_controls`, `arbiter_policy`, …) and hash a **fixed field list** with
+`JSON.stringify` and **no signature**. **Live receipts no longer match that shape.**
+The live ledger emits v3 receipts (`id`, `hash_sha256`, `prev_hash`,
+`canonical_bytes`, Ed25519 `signature`, full-payload canonicalization). Use the
+`*V3` API above for anything fetched from `verify.itechsmart.dev` today. The legacy
+exports are retained unchanged for historical/pre-v3 receipts. See the DRIFT NOTICE
+at the top of `src/standard-v3.ts`.
+
+---
+
 
 ## Why Cryptographic Proof?
 
