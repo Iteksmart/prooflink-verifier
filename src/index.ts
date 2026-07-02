@@ -3,7 +3,7 @@
 // See the DRIFT NOTICE in ./standard-v3 — the LIVE ledger emits v3 receipts.
 export * from './prooflink-verifier';
 
-// ProofLink Receipt Standard v1.0 — conformant verifier for LIVE v3 receipts.
+// ProofLink Receipt Standard v3.0 — conformant verifier for LIVE v3 receipts.
 // Spec: https://verify.itechsmart.dev/api/how-to-verify
 export {
   verifyReceiptV3,

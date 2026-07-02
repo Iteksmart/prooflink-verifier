@@ -1,7 +1,7 @@
 /**
- * ProofLink Receipt Standard v1.0 — conformant v3 verifier.
+ * ProofLink Receipt Standard v3.0 — conformant v3 verifier.
  *
- * Spec: /opt/itechsmart/prooflink-standard/ProofLink-Receipt-Standard-v1.md
+ * Spec: https://github.com/Iteksmart/prooflink-standard/blob/main/ProofLink-Receipt-Standard-v3.md
  * Live: https://verify.itechsmart.dev/api/how-to-verify
  *
  * ─────────────────────────────────────────────────────────────────────────
@@ -12,7 +12,7 @@
  * a PRE-v3 receipt shape that the LIVE ledger no longer emits. Live v3 receipts
  * use id / hash_sha256 / prev_hash / canonical_bytes / signature, are Ed25519
  * signed, and hash the FULL canonicalized payload (not a fixed field list).
- * This module is the Standard-v1.0-conformant verifier for live v3 receipts.
+ * This module is the Standard-v3.0-conformant verifier for live v3 receipts.
  * The legacy exports are retained unchanged for historical/pre-v3 receipts.
  * ─────────────────────────────────────────────────────────────────────────
  *
@@ -98,14 +98,14 @@ export function importEd25519PublicKey(hex: string): KeyObject {
   });
 }
 
-/** Verify one v3 receipt against Standard v1.0. Never throws on a failed check. */
+/** Verify one v3 receipt against Standard v3.0. Never throws on a failed check. */
 export function verifyReceiptV3(receipt: V3Receipt, prevHash?: string): V3Result {
   const checks: V3Check[] = [];
   const errors: string[] = [];
   const id = receipt?.id ?? "<no-id>";
 
   if (String(receipt?.schema_version) !== "3.0") {
-    errors.push(`schema_version is ${JSON.stringify(receipt?.schema_version)}; Standard v1.0 covers "3.0"`);
+    errors.push(`schema_version is ${JSON.stringify(receipt?.schema_version)}; Standard v3.0 covers "3.0"`);
     return { valid: false, id, checks, errors };
   }
 
