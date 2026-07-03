@@ -23,6 +23,19 @@ This package is the open-source verifier. You don't need an account. You don't n
 
 > **Don't trust the AI. Trust the math.**
 
+
+## Framework examples
+
+Credential-free verification wired into common stacks — see [`examples/`](./examples):
+
+| Example | Stack |
+|---|---|
+| [Express](./examples/express) | `/verify/:id` + `/chain` + `requireValidReceipt` middleware gate |
+| [Next.js](./examples/nextjs) | `/api/verify/[id]` server-side verification route |
+| [GitHub Actions](./examples/github-action) | CI gate — fail the build unless referenced receipts verify |
+| [Node audit](./examples/node-audit) | cron/monitoring; non-zero exit on any tamper |
+
+
 ## Not a spec — a running chain
 
 Live snapshot (2026-07-02, `/api/chain` + `/api/stats`): **79,000+ receipts**, chain

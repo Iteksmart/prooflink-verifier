@@ -1,0 +1,5 @@
+{
+  "name": "prooflink-verifier-express-example",
+  "private": true,
+  "dependencies": { "@itechsmart/prooflink-verifier": "^2.1.0", "express": "^4" }
+}

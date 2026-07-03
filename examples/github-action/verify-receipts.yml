@@ -1,0 +1,36 @@
+# ProofLink Verifier × GitHub Actions — verify AI-action receipts as a CI gate.
+#
+# Drop this in .github/workflows/. It fails the build if a ProofLink receipt
+# referenced by the change (here: read from a RECEIPTS file, one id per line)
+# does not cryptographically verify against the public ledger. Use it to prove,
+# in CI, that the autonomous actions behind a deploy actually happened and
+# weren't tampered with.
+name: Verify ProofLink receipts
+
+on:
+  pull_request:
+  workflow_dispatch: {}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm i -g @itechsmart/prooflink-verifier
+      - name: Verify each receipt id in RECEIPTS
+        run: |
+          # RECEIPTS: a repo file with one receipt id (or hash prefix) per line.
+          test -f RECEIPTS || { echo "no RECEIPTS file — nothing to verify"; exit 0; }
+          fail=0
+          while read -r id; do
+            [ -z "$id" ] && continue
+            echo "::group::Verify $id"
+            if prooflink-verify "$id"; then echo "OK $id"; else echo "::error::receipt $id FAILED verification"; fail=1; fi
+            echo "::endgroup::"
+          done < RECEIPTS
+          # Also confirm the public chain's newest entries link cleanly.
+          prooflink-verify --chain 25 || fail=1
+          exit $fail
