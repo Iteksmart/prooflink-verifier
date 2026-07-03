@@ -104,8 +104,14 @@ export function verifyReceiptV3(receipt: V3Receipt, prevHash?: string): V3Result
   const errors: string[] = [];
   const id = receipt?.id ?? "<no-id>";
 
-  if (String(receipt?.schema_version) !== "3.0") {
-    errors.push(`schema_version is ${JSON.stringify(receipt?.schema_version)}; Standard v3.0 covers "3.0"`);
+  const schema = String(receipt?.schema_version);
+  const v3 = schema === "3.0";
+  // v2.0 receipts sealed with the same crypto (canonical_bytes + Ed25519 over
+  // them) are signature-verifiable; only hash recompute + canonical re-derivation
+  // are v3-normative (a v2 hash_sha256 is a pre-chain ledger-internal link).
+  const v2crypto = schema === "2.0" && !!receipt.canonical_bytes && !!receipt.signature;
+  if (!v3 && !v2crypto) {
+    errors.push(`schema_version is ${JSON.stringify(receipt?.schema_version)}; covers "3.0" (and crypto-bearing "2.0")`);
     return { valid: false, id, checks, errors };
   }
 
@@ -117,20 +123,35 @@ export function verifyReceiptV3(receipt: V3Receipt, prevHash?: string): V3Result
     return { valid: false, id, checks, errors };
   }
 
-  // 1. hash integrity
-  const got = createHash("sha256").update(canonBytes).digest("hex");
-  const h1 = got === receipt.hash_sha256;
-  checks.push({ name: "hash_integrity", passed: h1,
-    detail: h1 ? "SHA256(canonical_bytes) == hash_sha256"
-               : `hash mismatch: ${got.slice(0, 16)}… vs ${String(receipt.hash_sha256).slice(0, 16)}…` });
+  if (v3) {
+    // 1. hash integrity
+    const got = createHash("sha256").update(canonBytes).digest("hex");
+    const h1 = got === receipt.hash_sha256;
+    checks.push({ name: "hash_integrity", passed: h1,
+      detail: h1 ? "SHA256(canonical_bytes) == hash_sha256"
+                 : `hash mismatch: ${got.slice(0, 16)}… vs ${String(receipt.hash_sha256).slice(0, 16)}…` });
 
-  // 2. canonical re-derivation
-  const payload: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(receipt)) if (!COMPUTED.includes(k)) payload[k] = v;
-  const rederived = canonicalize(payload);
-  const h2 = rederived.equals(canonBytes);
-  checks.push({ name: "canonical_rederivation", passed: h2,
-    detail: h2 ? "re-derived canonical bytes match" : "canonical re-derivation MISMATCH — signed field tampered" });
+    // 2. canonical re-derivation
+    const payload: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(receipt)) if (!COMPUTED.includes(k)) payload[k] = v;
+    const rederived = canonicalize(payload);
+    const h2 = rederived.equals(canonBytes);
+    checks.push({ name: "canonical_rederivation", passed: h2,
+      detail: h2 ? "re-derived canonical bytes match" : "canonical re-derivation MISMATCH — signed field tampered" });
+  } else {
+    // v2: bind via signed-payload consistency (hash/canonical not recomputable).
+    try {
+      const signed = JSON.parse(canonBytes.toString("utf-8")) as Record<string, unknown>;
+      const core = ["category", "actor", "subject", "action", "outcome", "timestamp"];
+      const mism = core.filter((k) => k in signed && (receipt as Record<string, unknown>)[k] !== undefined
+                                      && signed[k] !== (receipt as Record<string, unknown>)[k]);
+      checks.push({ name: "payload_consistency", passed: mism.length === 0,
+        detail: mism.length === 0 ? "displayed core fields match the signed canonical payload"
+                                  : `signed-payload mismatch on: ${mism.join(", ")}` });
+    } catch (e) {
+      checks.push({ name: "payload_consistency", passed: false, detail: `canonical_bytes not JSON: ${e}` });
+    }
+  }
 
   // 3. Ed25519 signature
   const sig = receipt.signature;

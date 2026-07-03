@@ -1,6 +1,6 @@
 {
   "name": "@itechsmart/prooflink-verifier",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Verify ProofLink receipts \u2014 the Trust & Accountability Layer for Autonomous AI by iTechSmart. Full cryptographic verification (SHA-256 hash chain + Ed25519 signatures) against the live public ledger. Don't trust the AI. Trust the math.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

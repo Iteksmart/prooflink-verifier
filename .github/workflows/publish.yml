@@ -1,7 +1,6 @@
 name: Publish
 
-# Publishes @itechsmart/prooflink-verifier on a GitHub Release, or manually.
-# Requires repo secret: NPM_TOKEN (npm automation token).
+# @itechsmart/prooflink-verifier via npm OIDC Trusted Publishing (no stored token).
 on:
   release:
     types: [published]
@@ -9,18 +8,22 @@ on:
 
 jobs:
   npm:
-    name: Publish to npm
+    name: Publish to npm (Trusted Publishing)
     runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           registry-url: "https://registry.npmjs.org"
+      - name: Upgrade npm for OIDC trusted publishing
+        run: npm install -g npm@latest  # requires npm >= 11.5.1
       - run: npm ci
       - run: npm run build
       - run: npm test
-      - name: Publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access public
+      - name: Publish to npm (OIDC + provenance)
+        run: npm publish --access public --provenance
