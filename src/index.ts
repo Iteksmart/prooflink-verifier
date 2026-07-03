@@ -14,3 +14,13 @@ export {
   PUBLISHED_PUBLIC_KEY,
 } from './standard-v3';
 export type { V3Receipt, V3Signature, V3Check, V3Result } from './standard-v3';
+
+// Live-ledger helpers: fetch + verify against verify.itechsmart.dev, and
+// pointer-linkage verification for the public summary list (/api/receipts).
+export {
+  fetchAndVerifyReceipt,
+  fetchAndVerifyChain,
+  verifyPublicChain,
+  DEFAULT_LEDGER,
+} from './live';
+export type { PublicChainReceipt, PublicChainResult } from './live';

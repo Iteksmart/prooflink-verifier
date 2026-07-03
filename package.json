@@ -1,11 +1,12 @@
 {
   "name": "@itechsmart/prooflink-verifier",
-  "version": "1.0.0",
-  "description": "Open-source cryptographic verification for iTechSmart UAIO ProofLink receipts — don't trust our AI, trust the math.",
+  "version": "2.0.0",
+  "description": "Verify ProofLink receipts \u2014 the Trust & Accountability Layer for Autonomous AI by iTechSmart. Full cryptographic verification (SHA-256 hash chain + Ed25519 signatures) against the live public ledger. Don't trust the AI. Trust the math.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist",
+    "bin",
     "README.md",
     "LICENSE"
   ],
@@ -16,13 +17,20 @@
   },
   "keywords": [
     "prooflink",
-    "uaio",
-    "itechsmart",
+    "ai-accountability-layer",
+    "ai-audit-trail",
     "cryptographic-verification",
-    "audit",
+    "ed25519",
     "sha256",
     "hash-chain",
-    "tamper-evident"
+    "tamper-evident",
+    "eu-ai-act",
+    "article-12",
+    "scitt",
+    "uaio",
+    "itechsmart",
+    "bitcoin-anchoring",
+    "opentimestamps"
   ],
   "author": "iTechSmart Inc.",
   "license": "MIT",
@@ -44,5 +52,8 @@
     "@types/node": "^20.0.0",
     "typescript": "^5.4.0",
     "vitest": "^1.6.0"
+  },
+  "bin": {
+    "prooflink-verify": "bin/cli.js"
   }
 }

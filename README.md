@@ -1,16 +1,25 @@
 # ProofLink™ Verifier
 
+[![npm](https://img.shields.io/npm/v/%40itechsmart%2Fprooflink-verifier)](https://www.npmjs.com/package/@itechsmart/prooflink-verifier)
+[![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 [![Verify Live](https://img.shields.io/badge/verify-live-00A870)](https://verify.itechsmart.dev)
+[![ledger](https://img.shields.io/badge/live_ledger-80%2C000%2B_receipts-22d3ee)](https://verify.itechsmart.dev)
 
 > **Every other AI-accountability standard is a PDF. ProofLink is a running ledger of
-> 79,000+ cryptographically-sealed AI actions you can verify right now — not a spec, a
+> 80,000+ cryptographically-sealed AI actions you can verify right now — not a spec, a
 > live chain.** → **[verify.itechsmart.dev](https://verify.itechsmart.dev)**
 
 **Open-source, zero-dependency cryptographic verification logic for iTechSmart UAIO
 receipts** — the reference implementation of the
 [ProofLink Receipt Standard **v3.0**](https://github.com/Iteksmart/prooflink-standard/blob/main/ProofLink-Receipt-Standard-v3.md).
 
-> Don't trust our AI. Trust the math.
+**Independently verify what an autonomous AI actually did.**
+
+ProofLink is the **Trust & Accountability Layer for Autonomous AI** by [iTechSmart Inc.](https://itechsmart.dev) Every autonomous action seals a cryptographic receipt — SHA-256 hash-chained, **Ed25519-signed**, Bitcoin-anchored via OpenTimestamps — into a public ledger.
+
+This package is the open-source verifier. You don't need an account. You don't need a demo. You don't need to trust iTechSmart.
+
+> **Don't trust the AI. Trust the math.**
 
 ## Not a spec — a running chain
 
@@ -50,6 +59,25 @@ ProofLink aligns conceptually with the IETF Internet-Draft
 [`draft-sharif-agent-audit-trail-00`](https://datatracker.ietf.org/doc/html/draft-sharif-agent-audit-trail-00)
 (same problem, shared SHA-256 hash-chain core) while differing deliberately on
 canonicalization (`json.dumps`, not RFC 8785 JCS) and signature (Ed25519, not ECDSA P-256).
+
+---
+
+## Verify a real receipt in 30 seconds
+
+```bash
+# Full cryptographic verification of one receipt from the live public ledger:
+npx @itechsmart/prooflink-verifier 450ebfeb2a1cb00d
+
+#   ✓ hash_integrity            SHA256(canonical_bytes) == hash_sha256
+#   ✓ canonical_rederivation    re-derived canonical bytes match
+#   ✓ ed25519_signature         Ed25519 OK
+#   VERIFIED
+
+# Pointer-linkage check on the newest 25 receipts in the chain:
+npx @itechsmart/prooflink-verifier --chain 25
+```
+
+Grab any receipt ID from the live ledger at **[verify.itechsmart.dev](https://verify.itechsmart.dev)** — no account, no demo, no trust required.
 
 ---
 
@@ -95,43 +123,6 @@ Regulators are catching up. **EU AI Act Article 12** (enforcement 2026-08-02) re
 
 A cryptographic receipt chain is the cheapest way to meet those requirements *and* the only way to prove autonomous behavior to a skeptical auditor. ProofLink generates one receipt per autonomous action, SHA-256 hashed, linked to the previous receipt, and publicly verifiable at [verify.itechsmart.dev](https://verify.itechsmart.dev).
 
-## What is this?
-
-When iTechSmart's UAIO platform autonomously remediates infrastructure — restarting a crashed pod, patching a misconfiguration, rolling back a bad deployment — it generates a **ProofLink receipt**: a cryptographically signed, hash-chained record of exactly what happened, when, and why.
-
-This repository contains the **open-source verification logic** that anyone can use to independently confirm those receipts haven't been tampered with.
-
-You don't need to trust us. You can verify the math yourself.
-
----
-
-## How it works
-
-Each ProofLink receipt contains:
-
-1. **SHA-256 hash** — computed over all fields of the receipt (deterministic, canonical JSON)
-2. **Previous hash** — the SHA-256 of the preceding receipt, creating a tamper-evident chain
-3. **Chain position** — sequential integer; gaps indicate missing receipts
-4. **Timestamp** — ISO 8601, must be chronologically ordered
-
-Altering **any** receipt in the chain invalidates **every subsequent receipt** — the same principle as Bitcoin's blockchain, applied to infrastructure audit trails.
-
-```
-Receipt 0 (genesis)           Receipt 1                    Receipt 2
-┌─────────────────────┐       ┌─────────────────────┐      ┌─────────────────────┐
-│ sha256: abc123...   │──────▶│ prev_hash: abc123... │─────▶│ prev_hash: def456...│
-│ prev_hash: null     │       │ sha256: def456...    │      │ sha256: ghi789...   │
-│ chain_position: 0   │       │ chain_position: 1    │      │ chain_position: 2   │
-└─────────────────────┘       └─────────────────────┘      └─────────────────────┘
-```
-
-If you alter Receipt 1's `action` field:
-- Its computed SHA-256 changes → `sha256` field no longer matches → **tamper detected**
-- Receipt 2's `prev_hash` no longer matches → **chain broken**
-
----
-
-
 ## EU AI Act Article 12 Alignment
 
 Article 12 of the EU AI Act (effective 2026-08-02) requires providers of high-risk AI systems to maintain automatic, tamper-evident logs of every decision. Mutable log files, post-hoc PDFs, and ephemeral dashboards do not satisfy this requirement.
@@ -157,151 +148,71 @@ Each receipt asserts compliance with the following NIST 800-53 controls. The map
 | **SI-7** | Software, Firmware, and Information Integrity | Tamper-evident chain on the action trail |
 | **SA-11** | Developer Testing and Evaluation | `test_result` field captured per receipt |
 
-## Installation
+## What gets verified (schema v3 — the live ledger format)
+
+Every v3 receipt is sealed like this on the platform side:
+
+```
+payload          = all receipt fields EXCEPT (canonical_bytes, signature, hash_sha256)
+                   — including prev_hash and chain_position, so the chain link
+                   itself is covered by the hash AND the signature
+canonical_bytes  = canonical JSON of payload (sorted keys, compact, UTF-8), hex-encoded
+hash_sha256      = SHA-256(canonical_bytes)
+signature        = Ed25519 over the raw canonical bytes (32-byte public key, hex)
+```
+
+The verifier independently re-checks all three:
+
+| Check | What it proves |
+|---|---|
+| `hash_integrity` | The recorded hash really is the SHA-256 of the signed bytes |
+| `payload_consistency` | The fields you're reading are exactly what was hashed and signed — nothing displayed differs from the sealed record |
+| `signature_valid` | The Ed25519 signature verifies against the canonical bytes |
+
+Chain-level checks (`--chain`, `verifyPublicChain`): every receipt's `previous_hash` must equal the prior receipt's `sha256`, positions must be sequential, timestamps ordered. Altering any historic receipt breaks every receipt after it — the same principle as Bitcoin's blockchain, applied to AI accountability.
+
+Beyond this library: receipts are also anchored to the **Bitcoin blockchain via OpenTimestamps**, are **SCITT-compatible** (IETF architecture), and carry **W3C Verifiable Credential** envelopes plus clause-level **EU AI Act Article 12(1)/(2)/(4)** and NIST AI RMF mappings. See the [public verification spec](https://verify.itechsmart.dev/api/how-to-verify).
+
+---
+
+## Installation & library usage
 
 ```bash
 npm install @itechsmart/prooflink-verifier
 ```
 
-Or clone and use directly:
+```typescript
+import {
+  fetchAndVerifyReceipt,   // full crypto against the live ledger
+  fetchAndVerifyChain,     // pointer-linkage check on the newest N receipts
+  verifyReceiptV3,         // verify a v3 receipt object you already have
+  verifyPublicChain,       // verify a list from /api/receipts
+  verify, verifyAnyChain,  // schema-aware: auto-detects v3 vs legacy receipts
+} from '@itechsmart/prooflink-verifier'
 
-```bash
-git clone https://github.com/Iteksmart/prooflink-verifier
-cd prooflink-verifier
-npm install
+const result = await fetchAndVerifyReceipt('450ebfeb2a1cb00d')
+console.log(result.valid)            // true
+console.log(result.checks)           // hash_integrity, payload_consistency, signature_valid
+
+const chain = await fetchAndVerifyChain(50)
+console.log(chain.chain_valid)       // true
+console.log(chain.ledger_total)      // 80,000+ and counting
 ```
+
+Public API endpoints (no auth):
+
+- `GET https://verify.itechsmart.dev/api/receipt/<id>` — full receipt incl. `canonical_bytes` + `signature`
+- `GET https://verify.itechsmart.dev/api/receipts?limit=N` — newest receipts (summary)
+- `GET https://verify.itechsmart.dev/api/stats` — live totals + chain integrity
+- `GET https://verify.itechsmart.dev/api/how-to-verify` — the full verification spec
+
+**For AI agents:** the same verification is exposed over MCP at [mcp.itechsmart.dev](https://mcp.itechsmart.dev) — Claude, GPT, Copilot and Cursor can verify receipts directly (17 tools).
 
 ---
 
-## Usage
+## Legacy schema (v1)
 
-### Verify a single receipt
-
-```typescript
-import { verifyReceipt } from '@itechsmart/prooflink-verifier'
-
-const result = verifyReceipt(receipt, previousReceipt)
-
-console.log(result.valid)           // true/false
-console.log(result.tamper_detected) // true if hash or chain broken
-console.log(result.checks)          // detailed check results
-console.log(result.errors)          // list of failures
-```
-
-
-## How to Verify a Receipt (Step-by-Step)
-
-The point of a public verifier is that anyone — auditor, journalist, competitor, customer — can independently confirm a ProofLink chain has not been edited. Here is the path from "I have a receipt ID" to "I trust this AI action happened exactly as claimed":
-
-**1. Fetch the receipt**
-
-```bash
-curl https://verify.itechsmart.dev/api/verify/<receipt_id>
-```
-
-**2. Fetch the previous receipt** referenced by `previous_hash`:
-
-```bash
-curl https://verify.itechsmart.dev/api/receipts \
-  | jq '.receipts[] | select(.sha256 == "<previous_hash>")'
-```
-
-**3. Re-compute the SHA-256** over the canonical JSON of every field except `sha256` itself, and check that it matches:
-
-```typescript
-import { verifyReceipt } from '@itechsmart/prooflink-verifier'
-const result = verifyReceipt(receipt, previousReceipt)
-console.log(result.valid)            // must be true
-console.log(result.tamper_detected)  // must be false
-```
-
-**4. Walk the chain backward** to the genesis receipt with `verifyChain()`. A single broken link invalidates the chain from that point forward.
-
-**5. Spot-check by random sampling.** Pick 5–10 random receipts; if every one verifies, the math says the entire chain is intact with overwhelming probability.
-
-If you find a chain break, that is a real failure — please file a public issue on this repo.
-
-### Verify an entire chain
-
-```typescript
-import { verifyChain } from '@itechsmart/prooflink-verifier'
-
-const receipts = await fetchReceiptsFromLedger()
-const result = verifyChain(receipts)
-
-console.log(result.chain_valid)      // true if all receipts intact
-console.log(result.tamper_detected)  // true if any tampering found
-console.log(result.tamper_position)  // which position was altered
-console.log(result.summary)          // human-readable summary
-```
-
-### Compute a hash yourself
-
-```typescript
-import { computeReceiptHash } from '@itechsmart/prooflink-verifier'
-
-const { sha256, ...receiptWithoutHash } = receipt
-const computed = computeReceiptHash(receiptWithoutHash)
-
-console.log(computed === receipt.sha256) // true if untampered
-```
-
----
-
-## The canonical hash function
-
-The hash is computed over a deterministic JSON serialization of all fields **except** `sha256` itself:
-
-```typescript
-export function computeReceiptHash(receipt: Omit<ProofLinkReceipt, 'sha256'>): string {
-  const canonical = JSON.stringify({
-    receipt_id: receipt.receipt_id,
-    version: receipt.version,
-    timestamp: receipt.timestamp,
-    container: receipt.container,
-    executor: receipt.executor,
-    trigger: receipt.trigger,
-    action: receipt.action,
-    action_parameters: receipt.action_parameters,
-    before_state: receipt.before_state,
-    after_state: receipt.after_state,
-    nist_controls: receipt.nist_controls,
-    human_input: receipt.human_input,
-    arbiter_policy: receipt.arbiter_policy,
-    previous_hash: receipt.previous_hash,
-    chain_position: receipt.chain_position,
-  }, null, 0)
-
-  return crypto.createHash('sha256').update(canonical, 'utf8').digest('hex')
-}
-```
-
-The field ordering is fixed and documented. You can reimplement this in any language and verify receipts independently.
-
----
-
-## Verification checks
-
-For each receipt, the verifier runs 5 checks:
-
-| Check | What it verifies |
-|-------|-----------------|
-| `schema_valid` | All required fields present |
-| `receipt_integrity` | Stored SHA-256 matches recomputed hash |
-| `chain_link` | `previous_hash` matches prior receipt's `sha256` |
-| `chain_position` | Position is sequential (no gaps) |
-| `timestamp_order` | Timestamps are chronologically ordered |
-
----
-
-## Live receipts
-
-Verify real receipts from iTechSmart's production ledger:
-
-```
-https://verify.itechsmart.dev
-https://api.itechsmart.dev/api/v1/prooflink/receipts
-```
+Earlier receipts used a fixed-field schema (`container`, `executor`, `trigger`, …). The original verification functions (`verifyReceipt`, `verifyChain`, `computeReceiptHash`) still support it, and `verify()` / `verifyAnyChain()` auto-detect which schema you're holding.
 
 ---
 
@@ -322,23 +233,29 @@ This verifier is intentionally minimal. The goal is auditable simplicity — not
 PRs welcome for:
 - Additional language implementations (Python, Go, Rust)
 - OpenTimestamps proof verification
-- CLI tool
 - Test vectors
 
 ---
 
-## License
+## Why this exists
 
-MIT — use freely, audit openly, verify everything.
+Regulators (EU AI Act Article 12, enforcement August 2, 2026), auditors, and customers increasingly ask one question about autonomous AI: **"Prove it."**
+
+Audit logs can be edited. Dashboards can be wrong. Vendor attestations require trust. A hash-chained, signed, Bitcoin-anchored receipt that *anyone* can verify with open-source code requires none of those things.
 
 ---
 
 ## About iTechSmart
 
-iTechSmart builds UAIO (Unified Autonomous IT Operations) — the first enterprise platform that autonomously detects, remediates, and cryptographically proves every infrastructure action.
+iTechSmart Inc. builds UAIO (Unified Autonomous IT Operations) — the first enterprise platform that autonomously detects, remediates, and cryptographically proves every infrastructure action — and operates ProofLink, the Trust & Accountability Layer for Autonomous AI.
 
-- Website: [itechsmart.dev](https://itechsmart.dev)
+- Product: [prooflink.itechsmart.dev](https://prooflink.itechsmart.dev)
 - Verify receipts: [verify.itechsmart.dev](https://verify.itechsmart.dev)
+- Website: [itechsmart.dev](https://itechsmart.dev)
 - Whitepaper: [whitepaper.itechsmart.dev](https://whitepaper.itechsmart.dev)
 
-SDVOSB · CAGE: 172W2 · NVIDIA Inception
+SDVOSB · CAGE: 172W2 · UEI: ZCPFX4N86G36 · NVIDIA Inception
+
+## License
+
+MIT © iTechSmart Inc. — use freely, audit openly, verify everything. ProofLink™ is a registered federal trademark of iTechSmart Inc.
