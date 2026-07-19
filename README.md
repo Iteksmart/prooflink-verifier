@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This repository has moved to [github.com/iTechSmartINC/prooflink-verifier](https://github.com/iTechSmartINC/prooflink-verifier)** as part of the iTechSmart Inc rebrand.
+> Please update your links and git remotes. This copy is kept as a redirect and is no longer updated.
+
 # ProofLink™ Verifier
 
 [![CI](https://github.com/Iteksmart/prooflink-verifier/actions/workflows/ci.yml/badge.svg)](https://github.com/Iteksmart/prooflink-verifier/actions/workflows/ci.yml) [![npm](https://img.shields.io/npm/v/%40itechsmart%2Fprooflink-verifier)](https://www.npmjs.com/package/@itechsmart/prooflink-verifier) [![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE) [![Verify Live](https://img.shields.io/badge/verify-live-00A870)](https://verify.itechsmart.dev) [![ledger](https://img.shields.io/badge/live_ledger-80%2C000%2B_receipts-22d3ee)](https://verify.itechsmart.dev)
