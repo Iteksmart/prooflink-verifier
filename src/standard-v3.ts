@@ -68,6 +68,15 @@ export interface V3Result {
   id: string;
   checks: V3Check[];
   errors: string[];
+  signer_trusted?: boolean;
+  signature_valid?: boolean;
+  bitcoin_verified?: false;
+  verification_scope?: string;
+}
+
+export interface V3TrustOptions {
+  trustedPublicKeys?: readonly string[];
+  revokedPublicKeys?: readonly string[];
 }
 
 const COMPUTED = ["canonical_bytes", "signature", "hash_sha256"];
@@ -91,6 +100,7 @@ function canon(v: unknown): string {
 
 const SPKI = Buffer.from("302a300506032b6570032100", "hex");
 export function importEd25519PublicKey(hex: string): KeyObject {
+  if (typeof hex !== 'string' || !/^[0-9a-f]{64}$/i.test(hex)) throw new Error('Invalid Ed25519 public key encoding');
   return createPublicKey({
     key: Buffer.concat([SPKI, Buffer.from(hex, "hex")]),
     format: "der",
@@ -99,10 +109,20 @@ export function importEd25519PublicKey(hex: string): KeyObject {
 }
 
 /** Verify one v3 receipt against Standard v3.0. Never throws on a failed check. */
-export function verifyReceiptV3(receipt: V3Receipt, prevHash?: string): V3Result {
+export function verifyReceiptV3(receipt: V3Receipt, prevHash?: string, options: V3TrustOptions = {}): V3Result {
   const checks: V3Check[] = [];
   const errors: string[] = [];
   const id = receipt?.id ?? "<no-id>";
+  if (!receipt || typeof receipt !== 'object' || Array.isArray(receipt)) return { valid: false, id, checks, errors: ['receipt must be an object'], bitcoin_verified: false };
+  let trusted: string[] = [], revoked: string[] = [];
+  try {
+    const parseKeys = (keys: readonly string[]) => {
+      if (!Array.isArray(keys) || keys.some(k => typeof k !== 'string' || !/^[0-9a-f]{64}$/i.test(k))) throw new Error('Invalid trusted/revoked key policy');
+      return keys.map(k => k.toLowerCase());
+    };
+    trusted = parseKeys(options.trustedPublicKeys === undefined ? [PUBLISHED_PUBLIC_KEY] : options.trustedPublicKeys);
+    revoked = parseKeys(options.revokedPublicKeys === undefined ? [] : options.revokedPublicKeys);
+  } catch (error) { return { valid: false, id, checks, errors: [(error as Error).message], bitcoin_verified: false }; }
 
   const schema = String(receipt?.schema_version);
   const v3 = schema === "3.0";
@@ -117,6 +137,7 @@ export function verifyReceiptV3(receipt: V3Receipt, prevHash?: string): V3Result
 
   let canonBytes: Buffer;
   try {
+    if (typeof receipt.canonical_bytes !== 'string' || !/^(?:[0-9a-f]{2})+$/i.test(receipt.canonical_bytes)) throw new Error('Invalid canonical hexadecimal bytes');
     canonBytes = Buffer.from(receipt.canonical_bytes, "hex");
   } catch (e) {
     checks.push({ name: "hash_integrity", passed: false, detail: `canonical_bytes not hex: ${e}` });
@@ -134,10 +155,14 @@ export function verifyReceiptV3(receipt: V3Receipt, prevHash?: string): V3Result
     // 2. canonical re-derivation
     const payload: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(receipt)) if (!COMPUTED.includes(k)) payload[k] = v;
-    const rederived = canonicalize(payload);
-    const h2 = rederived.equals(canonBytes);
-    checks.push({ name: "canonical_rederivation", passed: h2,
-      detail: h2 ? "re-derived canonical bytes match" : "canonical re-derivation MISMATCH — signed field tampered" });
+    try {
+      const rederived = canonicalize(payload);
+      const h2 = rederived.equals(canonBytes);
+      checks.push({ name: "canonical_rederivation", passed: h2,
+        detail: h2 ? "re-derived canonical bytes match" : "canonical re-derivation MISMATCH — signed field tampered" });
+    } catch (error) {
+      checks.push({ name: 'canonical_rederivation', passed: false, detail: `Unsupported canonical payload: ${(error as Error).message}` });
+    }
   } else {
     // v2: bind via signed-payload consistency (hash/canonical not recomputable).
     try {
@@ -155,10 +180,17 @@ export function verifyReceiptV3(receipt: V3Receipt, prevHash?: string): V3Result
 
   // 3. Ed25519 signature
   const sig = receipt.signature;
+  const signer = typeof sig?.public_key === 'string' ? sig.public_key.toLowerCase() : '';
+  const signerTrusted = /^[0-9a-f]{64}$/.test(signer) && trusted.includes(signer) && !revoked.includes(signer);
+  checks.push({ name: 'signer_trust', passed: signerTrusted, detail: signerTrusted ? 'signer matches a configured trusted, non-revoked key' : 'signer is missing, malformed, untrusted or revoked' });
   if (!sig || !sig.public_key || !sig.value) {
     checks.push({ name: "ed25519_signature", passed: false, detail: "signature missing/malformed" });
   } else {
     try {
+      if (sig.algorithm !== 'Ed25519') throw new Error('Unsupported signature algorithm');
+      const metadata = sig as unknown as Record<string, unknown>;
+      for (const field of ['signs','signed_payload']) if (field in metadata && metadata[field] !== 'canonical_bytes') throw new Error('Signature must cover canonical_bytes');
+      if (typeof sig.value !== 'string' || !/^[0-9a-f]{128}$/i.test(sig.value)) throw new Error('Invalid signature encoding');
       const ok = edVerify(null, canonBytes, importEd25519PublicKey(sig.public_key), Buffer.from(sig.value, "hex"));
       checks.push({ name: "ed25519_signature", passed: ok,
         detail: ok ? `Ed25519 OK (key ${sig.public_key.slice(0, 16)}…)` : "Ed25519 signature INVALID" });
@@ -176,16 +208,18 @@ export function verifyReceiptV3(receipt: V3Receipt, prevHash?: string): V3Result
   }
 
   const valid = checks.every((c) => c.passed) && errors.length === 0;
-  return { valid, id, checks, errors };
+  return { valid, id, checks, errors, signer_trusted: signerTrusted,
+    signature_valid: checks.some(c => c.name === 'ed25519_signature' && c.passed), bitcoin_verified: false,
+    verification_scope: 'receipt integrity and configured signer trust; Bitcoin and ledger inclusion not assessed' };
 }
 
 /** Boolean convenience wrapper. */
-export function verifyV3(receipt: V3Receipt, prevHash?: string): boolean {
-  return verifyReceiptV3(receipt, prevHash).valid;
+export function verifyV3(receipt: V3Receipt, prevHash?: string, options: V3TrustOptions = {}): boolean {
+  return verifyReceiptV3(receipt, prevHash, options).valid;
 }
 
 /** Verify an oldest-first chain (e.g. /api/export order) of v3 receipts. */
-export function verifyChainV3(receipts: V3Receipt[]): { chain_valid: boolean; results: V3Result[] } {
-  const results = receipts.map((r, i) => verifyReceiptV3(r, i > 0 ? receipts[i - 1].hash_sha256 : undefined));
-  return { chain_valid: results.every((r) => r.valid), results };
+export function verifyChainV3(receipts: V3Receipt[], options: V3TrustOptions = {}): { chain_valid: boolean; results: V3Result[] } {
+  const results = receipts.map((r, i) => verifyReceiptV3(r, i > 0 ? receipts[i - 1].hash_sha256 : undefined, options));
+  return { chain_valid: results.length > 0 && results.every((r) => r.valid), results };
 }

@@ -44,7 +44,7 @@ Ledger: https://verify.itechsmart.dev  (no account required)`);
     console.log(`  ${c.passed ? GREEN + '✓' : RED + '✗'} ${c.name}${RESET} ${DIM}${c.detail}${RESET}`);
   }
   console.log(r.valid
-    ? `${GREEN}${BOLD}VERIFIED${RESET} — hash intact, payload consistent, Ed25519 signature valid.`
+      ? `${GREEN}${BOLD}VERIFIED${RESET} — hash intact, payload consistent, trusted Ed25519 signer verified. Bitcoin confirmation is not assessed by this check.`
     : r.tamper_detected
       ? `${RED}${BOLD}TAMPER DETECTED${RESET}`
       : `${RED}${BOLD}NOT FULLY VERIFIED${RESET} ${DIM}(see checks above)${RESET}`);

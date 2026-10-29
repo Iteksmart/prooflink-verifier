@@ -13,7 +13,7 @@ export {
   importEd25519PublicKey,
   PUBLISHED_PUBLIC_KEY,
 } from './standard-v3';
-export type { V3Receipt, V3Signature, V3Check, V3Result } from './standard-v3';
+export type { V3Receipt, V3Signature, V3Check, V3Result, V3TrustOptions } from './standard-v3';
 
 // Live-ledger helpers: fetch + verify against verify.itechsmart.dev, and
 // pointer-linkage verification for the public summary list (/api/receipts).

@@ -1,5 +1,7 @@
 # ProofLink™ Verifier
 
+> **Local security update — issuer trust:** v3 verification now requires a configured trusted, non-revoked signing key. A key embedded in a receipt is not its own trust root. See [SECURITY.md](SECURITY.md). Signature/integrity verification does not establish Bitcoin confirmation, action correctness or regulatory compliance. Source changes must be released and adopted by consumers before they protect published/running deployments.
+
 [![CI](https://github.com/Iteksmart/prooflink-verifier/actions/workflows/ci.yml/badge.svg)](https://github.com/Iteksmart/prooflink-verifier/actions/workflows/ci.yml) [![npm](https://img.shields.io/npm/v/%40itechsmart%2Fprooflink-verifier)](https://www.npmjs.com/package/@itechsmart/prooflink-verifier) [![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE) [![Verify Live](https://img.shields.io/badge/verify-live-00A870)](https://verify.itechsmart.dev) [![ledger](https://img.shields.io/badge/live_ledger-80%2C000%2B_receipts-22d3ee)](https://verify.itechsmart.dev)
 
 > **Every other AI-accountability standard is a PDF. ProofLink is a running ledger of
