@@ -4,9 +4,7 @@
 
 [![CI](https://github.com/Iteksmart/prooflink-verifier/actions/workflows/ci.yml/badge.svg)](https://github.com/Iteksmart/prooflink-verifier/actions/workflows/ci.yml) [![npm](https://img.shields.io/npm/v/%40itechsmart%2Fprooflink-verifier)](https://www.npmjs.com/package/@itechsmart/prooflink-verifier) [![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE) [![Verify Live](https://img.shields.io/badge/verify-live-00A870)](https://verify.itechsmart.dev) [![ledger](https://img.shields.io/badge/live_ledger-80%2C000%2B_receipts-22d3ee)](https://verify.itechsmart.dev)
 
-> **Every other AI-accountability standard is a PDF. ProofLink is a running ledger of
-> 80,000+ cryptographically-sealed AI actions you can verify right now — not a spec, a
-> live chain.** → **[verify.itechsmart.dev](https://verify.itechsmart.dev)**
+> ProofLink provides receipt-integrity and configured-issuer verification. Independent outcome, ledger-inclusion and Bitcoin checks have separate evidence requirements.
 
 **Open-source, zero-dependency cryptographic verification logic for iTechSmart UAIO
 receipts** — the reference implementation of the
@@ -16,7 +14,7 @@ receipts** — the reference implementation of the
 
 ProofLink is the **Trust & Accountability Layer for Autonomous AI** by [iTechSmart Inc.](https://itechsmart.dev) Every autonomous action seals a cryptographic receipt — SHA-256 hash-chained, **Ed25519-signed**, Bitcoin-anchored via OpenTimestamps — into a public ledger.
 
-This package is the open-source verifier. You don't need an account. You don't need a demo. You don't need to trust iTechSmart.
+This package is the open-source verifier. You don't need an account. You don't need a demo. Establish trusted signing keys independently; cryptography does not remove that trust requirement.
 
 > **Don't trust the AI. Trust the math.**
 
@@ -49,7 +47,7 @@ links, **not a chain break** (`breaks: 0`). We do not claim all 79k are strict-v
 
 ## Built for the regulations
 
-| Regulation / framework | ProofLink field / mechanism that satisfies it |
+| Regulation / framework | Illustrative evidence support (not a compliance determination) |
 |---|---|
 | **EU AI Act (Reg. 2024/1689) Article 12** — automatic tamper-evident logging for high-risk AI | Append-only hash chain; every action seals `timestamp`, `actor`, `action`, `subject`, `outcome`, `details` |
 | **NIST AI RMF 1.0 — MEASURE 2.7 / MANAGE 4.1** — monitoring evaluated & documented | `security` / `platform_fix` / `platform_health_check` receipts, signed & immutable; `actor` separates system/agent/operator |
